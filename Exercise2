@@ -1,0 +1,183 @@
+import java.util.*;
+import java.util.stream.Collectors;
+
+interface CommunicationAdapter {
+    void deliverMessage(String recipient, String message);
+}
+
+class WebSocketAdapter implements CommunicationAdapter {
+    @Override
+    public void deliverMessage(String recipient, String message) {
+        System.out.println("[WebSocket to " + recipient + "] " + message);
+    }
+}
+
+class HttpAdapter implements CommunicationAdapter {
+    @Override
+    public void deliverMessage(String recipient, String message) {
+        System.out.println("[HTTP to " + recipient + "] " + message);
+    }
+}
+
+class User {
+    private String username;
+    private CommunicationAdapter adapter;
+
+    public User(String username, CommunicationAdapter adapter) {
+        this.username = username;
+        this.adapter = adapter;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void sendMessage(ChatRoom room, String message) {
+        room.broadcast(username + ": " + message);
+    }
+
+    public void sendPrivateMessage(ChatRoom room, String recipient, String message) {
+        room.privateMessage(this, recipient, message);
+    }
+
+    public void receive(String message) {
+        adapter.deliverMessage(username, message);
+    }
+}
+
+class ChatRoom {
+    private String roomId;
+    private List<User> users = new ArrayList<>();
+    private List<String> messageHistory = new ArrayList<>();
+
+    public ChatRoom(String roomId) {
+        this.roomId = roomId;
+    }
+
+    public void join(User user) {
+        users.add(user);
+        broadcast(user.getUsername() + " joined the room.");
+    }
+
+    public void leave(User user) {
+        users.remove(user);
+        broadcast(user.getUsername() + " left the room.");
+    }
+
+    public void broadcast(String message) {
+        messageHistory.add(message);
+        for (User user : users) {
+            user.receive(message);
+        }
+    }
+
+    public void privateMessage(User sender, String recipientName, String message) {
+        for (User user : users) {
+            if (user.getUsername().equalsIgnoreCase(recipientName)) {
+                String formatted = "[Private from " + sender.getUsername() + "] " + message;
+                messageHistory.add(formatted); // keep in history
+                user.receive(formatted);
+                return;
+            }
+        }
+        sender.receive("User " + recipientName + " not found in the room.");
+    }
+
+    public List<String> getActiveUsers() {
+        return users.stream().map(User::getUsername).collect(Collectors.toList());
+    }
+
+    public List<String> getMessageHistory() {
+        return messageHistory;
+    }
+}
+
+class ChatRoomManager {
+    private static ChatRoomManager instance;
+    private Map<String, ChatRoom> rooms = new HashMap<>();
+
+    private ChatRoomManager() {}
+
+    public static synchronized ChatRoomManager getInstance() {
+        if (instance == null) {
+            instance = new ChatRoomManager();
+        }
+        return instance;
+    }
+
+    public ChatRoom getOrCreateRoom(String roomId) {
+        return rooms.computeIfAbsent(roomId, ChatRoom::new);
+    }
+}
+
+public class Exercise2 {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        ChatRoomManager manager = ChatRoomManager.getInstance();
+
+        System.out.print("Enter Chat Room ID: ");
+        String roomId = scanner.nextLine();
+        ChatRoom room = manager.getOrCreateRoom(roomId);
+
+        System.out.print("Enter number of users joining: ");
+        int userCount = Integer.parseInt(scanner.nextLine());
+        List<User> users = new ArrayList<>();
+
+        for (int i = 0; i < userCount; i++) {
+            System.out.print("Enter username for user " + (i + 1) + ": ");
+            String username = scanner.nextLine();
+            System.out.print("Choose adapter (1 for WebSocket, 2 for HTTP): ");
+            int adapterChoice = Integer.parseInt(scanner.nextLine());
+
+            CommunicationAdapter adapter = adapterChoice == 1
+                ? new WebSocketAdapter()
+                : new HttpAdapter();
+
+            User user = new User(username, adapter);
+            users.add(user);
+            room.join(user);
+        }
+
+        System.out.print("Enter number of messages to send: ");
+        int messageCount = Integer.parseInt(scanner.nextLine());
+
+        for (int i = 0; i < messageCount; i++) {
+            System.out.print("Enter sender's username: ");
+            String senderName = scanner.nextLine();
+            Optional<User> sender = users.stream()
+                .filter(u -> u.getUsername().equalsIgnoreCase(senderName))
+                .findFirst();
+
+            if (sender.isPresent()) {
+                System.out.print("Is this a private message? (yes/no): ");
+                String isPrivate = scanner.nextLine();
+
+                if (isPrivate.equalsIgnoreCase("yes")) {
+                    System.out.print("Enter recipient's username: ");
+                    String recipient = scanner.nextLine();
+                    System.out.print("Enter message: ");
+                    String message = scanner.nextLine();
+                    sender.get().sendPrivateMessage(room, recipient, message);
+                } else {
+                    System.out.print("Enter message: ");
+                    String message = scanner.nextLine();
+                    sender.get().sendMessage(room, message);
+                }
+            } else {
+                System.out.println("User not found in the room.");
+            }
+        }
+
+        System.out.println("\nActive Users:");
+        for (String user : room.getActiveUsers()) {
+            System.out.println("- " + user);
+        }
+
+        System.out.println("\nMessage History:");
+        for (String msg : room.getMessageHistory()) {
+            System.out.println(msg);
+        }
+
+        scanner.close();
+    }
+}
