@@ -1,0 +1,212 @@
+import java.util.*;
+
+interface Command {
+    void execute();
+}
+
+class MusicPlayer {
+    public void play() { System.out.println("Music is Playing"); }
+    public void pause() { System.out.println("Music is Paused"); }
+    public void stop() { System.out.println("Music Stopped"); }
+}
+
+class PlayCommand implements Command {
+    private MusicPlayer player;
+    public PlayCommand(MusicPlayer player) { this.player = player; }
+    public void execute() { player.play(); }
+}
+
+class PauseCommand implements Command {
+    private MusicPlayer player;
+    public PauseCommand(MusicPlayer player) { this.player = player; }
+    public void execute() { player.pause(); }
+}
+
+class StopCommand implements Command {
+    private MusicPlayer player;
+    public StopCommand(MusicPlayer player) { this.player = player; }
+    public void execute() { player.stop(); }
+}
+
+class RemoteControl {
+    private Command command;
+    public void setCommand(Command command) { this.command = command; }
+    public void pressButton() { command.execute(); }
+}
+
+abstract class Recipe {
+    public final void cook() {
+        prepareIngredients();
+        cookDish();
+        serve();
+    }
+    protected abstract void prepareIngredients();
+    protected abstract void cookDish();
+    protected void serve() {
+        System.out.println("Dish served to customer");
+    }
+}
+
+class PastaRecipe extends Recipe {
+    protected void prepareIngredients() { System.out.println("Chopping vegetables and boiling pasta"); }
+    protected void cookDish() { System.out.println("Cooking pasta with sauce"); }
+}
+
+class CakeRecipe extends Recipe {
+    protected void prepareIngredients() { System.out.println("Mixing flour, eggs, and sugar"); }
+    protected void cookDish() { System.out.println("Baking the cake in oven"); }
+}
+
+class Meal {
+    private String mainCourse;
+    private String drink;
+    private String dessert;
+
+    public void setMainCourse(String mainCourse) { this.mainCourse = mainCourse; }
+    public void setDrink(String drink) { this.drink = drink; }
+    public void setDessert(String dessert) { this.dessert = dessert; }
+
+    public void showMeal() {
+        System.out.println("Meal includes: " + mainCourse + ", " + drink + ", " + dessert);
+    }
+}
+
+class MealBuilder {
+    private Meal meal = new Meal();
+
+    public MealBuilder addMainCourse(String item) {
+        meal.setMainCourse(item);
+        return this;
+    }
+
+    public MealBuilder addDrink(String item) {
+        meal.setDrink(item);
+        return this;
+    }
+
+    public MealBuilder addDessert(String item) {
+        meal.setDessert(item);
+        return this;
+    }
+
+    public Meal build() {
+        return meal;
+    }
+}
+
+interface GameCharacter extends Cloneable {
+    GameCharacter clone();
+    void display();
+}
+
+class Warrior implements GameCharacter {
+    private String weapon = "Sword";
+    public GameCharacter clone() {
+        return new Warrior();
+    }
+    public void display() {
+        System.out.println("Warrior with " + weapon);
+    }
+}
+
+class FlightBooking {
+    public void bookFlight() { System.out.println("Flight booked"); }
+}
+
+class HotelBooking {
+    public void bookHotel() { System.out.println("Hotel booked"); }
+}
+
+class TaxiBooking {
+    public void bookTaxi() { System.out.println("Taxi booked"); }
+}
+
+class TravelFacade {
+    private FlightBooking flight = new FlightBooking();
+    private HotelBooking hotel = new HotelBooking();
+    private TaxiBooking taxi = new TaxiBooking();
+
+    public void bookCompleteTrip() {
+        flight.bookFlight();
+        hotel.bookHotel();
+        taxi.bookTaxi();
+    }
+}
+
+interface FileSystemComponent {
+    void showDetails();
+}
+
+class File implements FileSystemComponent {
+    private String name;
+    public File(String name) { this.name = name; }
+    public void showDetails() {
+        System.out.println("File: " + name);
+    }
+}
+
+class Folder implements FileSystemComponent {
+    private String name;
+    private List<FileSystemComponent> components = new ArrayList<>();
+
+    public Folder(String name) { this.name = name; }
+
+    public void addComponent(FileSystemComponent component) {
+        components.add(component);
+    }
+
+    public void showDetails() {
+        System.out.println("Folder: " + name);
+        for (FileSystemComponent c : components) {
+            c.showDetails();
+        }
+    }
+}
+
+public class Exercise1 {
+    public static void main(String[] args) {
+        System.out.println("=== Command Pattern ===");
+        MusicPlayer player = new MusicPlayer();
+        RemoteControl remote = new RemoteControl();
+        remote.setCommand(new PlayCommand(player));
+        remote.pressButton();
+        remote.setCommand(new PauseCommand(player));
+        remote.pressButton();
+        remote.setCommand(new StopCommand(player));
+        remote.pressButton();
+
+        System.out.println("\n=== Template Method Pattern ===");
+        Recipe pasta = new PastaRecipe();
+        pasta.cook();
+        Recipe cake = new CakeRecipe();
+        cake.cook();
+
+        System.out.println("\n=== Builder Pattern ===");
+        Meal meal = new MealBuilder()
+            .addMainCourse("Burger")
+            .addDrink("Cola")
+            .addDessert("Ice Cream")
+            .build();
+        meal.showMeal();
+
+        System.out.println("\n=== Prototype Pattern ===");
+        Warrior original = new Warrior();
+        GameCharacter clone = original.clone();
+        original.display();
+        clone.display();
+
+        System.out.println("\n=== Facade Pattern ===");
+        TravelFacade travel = new TravelFacade();
+        travel.bookCompleteTrip();
+
+        System.out.println("\n=== Composite Pattern ===");
+        Folder root = new Folder("Root");
+        File file1 = new File("Resume.docx");
+        File file2 = new File("Photo.jpg");
+        Folder subFolder = new Folder("Documents");
+        subFolder.addComponent(file1);
+        root.addComponent(subFolder);
+        root.addComponent(file2);
+        root.showDetails();
+    }
+}
